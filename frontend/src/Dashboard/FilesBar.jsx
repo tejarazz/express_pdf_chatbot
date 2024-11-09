@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { RiChatNewFill } from "react-icons/ri";
@@ -14,16 +14,6 @@ const FilesBar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
   const userId = Cookies.get("userId");
   const navigate = useNavigate();
-  const dropdownRef = useRef(null);
-
-  // Function to handle cleanup for async operations
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   // Fetch chat history on component mount or when userId changes
   const fetchChatHistory = useCallback(async () => {
@@ -36,9 +26,7 @@ const FilesBar = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_LOCALHOST}/chats/${userId}`
       );
-      if (isMounted.current) {
-        setChatHistory(response.data || []);
-      }
+      setChatHistory(response.data || []);
     } catch (error) {
       console.error("Error fetching chat history:", error);
     }
@@ -58,9 +46,7 @@ const FilesBar = () => {
           withCredentials: true, // Ensure to send cookies if needed
         }
       );
-      if (isMounted.current) {
-        setPdfs(response.data || []); // Update the state with the PDFs data
-      }
+      setPdfs(response.data || []); // Update the state with the PDFs data
     } catch (error) {
       console.error("Error fetching PDFs:", error);
     }
@@ -70,18 +56,6 @@ const FilesBar = () => {
     fetchChatHistory();
     fetchPdfs(); // Fetch PDFs when component mounts
   }, [fetchChatHistory, fetchPdfs]);
-
-  // Handle clicks outside the dropdown to close it
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpenId(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleChatClick = (chatId) => {
     setSelectedChatId(chatId);
@@ -108,13 +82,12 @@ const FilesBar = () => {
         }
       );
 
-      const { chatId, fileName: backendFileName } = response.data; // Ensure this matches the response field
+      const { chatId, fileName: backendFileName } = response.data;
 
       const newChat = { chatId, fileName: backendFileName, questions: [] };
 
       setChatHistory((prevHistory) => [newChat, ...prevHistory]); // Update state after creating a new chat
       navigate(`/dashboard/${newChatId}`);
-      fetchChatHistory(); // Ensure the chat history is updated immediately after adding a new chat
     } catch (error) {
       console.error("Error creating new chat:", error.message);
     }
@@ -128,8 +101,13 @@ const FilesBar = () => {
       setChatHistory((prevHistory) =>
         prevHistory.filter((chat) => chat.chatId !== chatId)
       ); // Update state immediately after deleting a chat
-      setDropdownOpenId(null);
-      fetchChatHistory(); // Ensure chat history is updated after deletion
+      setDropdownOpenId(null); // Close the dropdown after deletion
+
+      // If the deleted chat was the selected one, clear the selection
+      if (selectedChatId === chatId) {
+        setSelectedChatId(null);
+        Cookies.remove("chatId");
+      }
     } catch (error) {
       console.error("Error deleting chat:", error.message);
     }
@@ -139,7 +117,7 @@ const FilesBar = () => {
     setDropdownOpenId((prevId) => (prevId === chatId ? null : chatId));
   };
 
-  const displayedChatHistory = [...chatHistory].reverse().slice(1);
+  const displayedChatHistory = [...chatHistory].reverse();
 
   return (
     <div className="overflow-y-auto max-h-screen w-[17%] py-4 px-2 text-white bg-neutral-800">
@@ -169,7 +147,7 @@ const FilesBar = () => {
                   }`}
                 >
                   <h3 className="text-sm w-[80%] truncate">{latestQuestion}</h3>
-                  <div className="relative" ref={dropdownRef}>
+                  <div className="relative">
                     <BsThreeDots
                       onClick={(e) => {
                         e.stopPropagation();
