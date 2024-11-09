@@ -42,7 +42,8 @@ const UploadSection = () => {
           text: extractedText,
           userId,
           fileName,
-        }
+        },
+        { withCredentials: true }
       );
       console.log(response.status);
       toast.success("Text uploaded and vectorized successfully!");

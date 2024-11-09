@@ -24,7 +24,8 @@ const Content = () => {
 
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_LOCALHOST}/chat_history/${chatId}`
+          `${import.meta.env.VITE_LOCALHOST}/chat_history/${chatId}`,
+          { withCredentials: true }
         );
         setChatHistory(response.data.questions || []);
       } catch (error) {
@@ -58,7 +59,8 @@ const Content = () => {
           question,
           userId,
           chatId,
-        }
+        },
+        { withCredentials: true }
       );
       setChatHistory((prevHistory) => [
         ...prevHistory,

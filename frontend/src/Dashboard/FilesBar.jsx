@@ -24,7 +24,8 @@ const FilesBar = () => {
 
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_LOCALHOST}/chats/${userId}`
+        `${import.meta.env.VITE_LOCALHOST}/chats/${userId}`,
+        { withCredentials: true }
       );
       setChatHistory(response.data || []);
     } catch (error) {
@@ -42,9 +43,7 @@ const FilesBar = () => {
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_LOCALHOST}/pdfs`,
-        {
-          withCredentials: true, // Ensure to send cookies if needed
-        }
+        { withCredentials: true }
       );
       setPdfs(response.data || []); // Update the state with the PDFs data
     } catch (error) {
@@ -79,7 +78,8 @@ const FilesBar = () => {
           userId,
           chatId: newChatId,
           fileName, // Make sure the fileName matches what you need
-        }
+        },
+        { withCredentials: true }
       );
 
       const { chatId, fileName: backendFileName } = response.data;
@@ -97,7 +97,9 @@ const FilesBar = () => {
 
   const handleDeleteChat = async (chatId) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_LOCALHOST}/chats/${chatId}`);
+      await axios.delete(`${import.meta.env.VITE_LOCALHOST}/chats/${chatId}`, {
+        withCredentials: true,
+      });
       setChatHistory((prevHistory) =>
         prevHistory.filter((chat) => chat.chatId !== chatId)
       ); // Update state immediately after deleting a chat

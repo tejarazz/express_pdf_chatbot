@@ -13,9 +13,7 @@ const PdfList = ({ refresh }) => {
     try {
       const { data } = await axios.get(
         `${import.meta.env.VITE_LOCALHOST}/pdfs`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       setPdfData(data);
     } catch (err) {

@@ -16,7 +16,8 @@ const Login = () => {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_LOCALHOST}/login`,
-        formData
+        formData,
+        { withCredentials: true } // This ensures cookies are sent with the request
       );
 
       if (response.data.message === "Login successful") {
