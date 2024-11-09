@@ -18,7 +18,12 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_AI_API);
 
 app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://express-documate.netlify.app"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 mongoose
