@@ -19,9 +19,12 @@ const SignUp = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post("http://localhost:3000/signup", {
-        ...formData,
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_LOCALHOST}/signup`,
+        {
+          ...formData,
+        }
+      );
       setformData({
         firstName: "",
         lastName: "",
