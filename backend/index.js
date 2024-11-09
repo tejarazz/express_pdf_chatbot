@@ -223,7 +223,7 @@ const cosineSimilarity = (vecA, vecB) => {
 };
 
 // Get all PDFs
-app.get("/api/pdfs", async (req, res) => {
+app.get("/pdfs", async (req, res) => {
   const userId = req.cookies.userId;
   if (!userId)
     return res.status(401).json({ message: "User not authenticated" });
@@ -307,7 +307,7 @@ app.post("/chats", async (req, res) => {
 });
 
 // Route to get user data
-app.get("/api/user", async (req, res) => {
+app.get("/user", async (req, res) => {
   try {
     const userId = req.cookies.userId;
     if (!userId)
@@ -324,7 +324,7 @@ app.get("/api/user", async (req, res) => {
 });
 
 //Delete a pdf
-app.delete("/api/pdfs/:id", async (req, res) => {
+app.delete("/pdfs/:id", async (req, res) => {
   try {
     const deletedPdf = await PdfData.findByIdAndDelete(req.params.id);
     if (!deletedPdf) return res.status(404).json({ message: "PDF not found" });

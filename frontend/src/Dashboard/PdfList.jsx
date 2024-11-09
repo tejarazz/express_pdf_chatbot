@@ -12,7 +12,7 @@ const PdfList = ({ refresh }) => {
     setLoading(true);
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_LOCALHOST}/api/pdfs`,
+        `${import.meta.env.VITE_LOCALHOST}/pdfs`,
         {
           withCredentials: true,
         }
@@ -33,7 +33,7 @@ const PdfList = ({ refresh }) => {
   const removePdf = async (id) => {
     try {
       const response = await axios.delete(
-        `${import.meta.env.VITE_LOCALHOST}/api/pdfs/${id}`
+        `${import.meta.env.VITE_LOCALHOST}/pdfs/${id}`
       );
       if (response.status === 200) {
         setPdfData(pdfData.filter((pdf) => pdf._id !== id));

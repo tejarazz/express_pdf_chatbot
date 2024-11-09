@@ -14,7 +14,7 @@ const UserProfile = () => {
     const fetchUserData = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_LOCALHOST}/api/user`,
+          `${import.meta.env.VITE_LOCALHOST}/user`,
           {
             withCredentials: true,
           }

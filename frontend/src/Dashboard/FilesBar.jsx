@@ -41,7 +41,7 @@ const FilesBar = () => {
 
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_LOCALHOST}/api/pdfs`,
+        `${import.meta.env.VITE_LOCALHOST}/pdfs`,
         {
           withCredentials: true, // Ensure to send cookies if needed
         }
