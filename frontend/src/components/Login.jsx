@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setformData] = useState({ email: "", password: "" });
@@ -24,10 +25,16 @@ const Login = () => {
         const { token, userId } = response.data;
 
         // Set the JWT token cookie
-        Cookies.set("token", token, { expires: 1 }); // expires in 1 day
+        Cookies.set("token", token, {
+          expires: 1,
+          secure: window.location.protocol === "https:",
+        });
 
         // Set the userId cookie
-        Cookies.set("userId", userId, { expires: 1 }); // expires in 1 day
+        Cookies.set("userId", userId, {
+          expires: 1,
+          secure: window.location.protocol === "https:",
+        });
 
         // Navigate to the dashboard
         navigate("/dashboard");
@@ -44,11 +51,11 @@ const Login = () => {
 
   return (
     <div
-      className="w-screen h-screen flex justify-center items-center "
+      className="w-screen h-screen flex justify-center items-center"
       id="login"
     >
-      <div className="rounded-lg h-[420px] w-[380px] lg:w-[450px] p-10 bg-white shadow-3xl ">
-        <form onSubmit={handleSubmit}>
+      <div className="rounded-lg h-[420px] w-[380px] lg:w-[450px] p-10 bg-white shadow-3xl">
+        <form onSubmit={handleSubmit} aria-label="login form" role="form">
           <h1 className="text-4xl font-bold text-center text-gray-800 mb-6">
             Welcome Back!
           </h1>
