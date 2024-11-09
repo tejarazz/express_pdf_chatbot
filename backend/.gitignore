@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 .env
+.embeddings.cache.json
 dist-ssr
 *.local
 
