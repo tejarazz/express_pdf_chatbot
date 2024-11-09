@@ -13,7 +13,23 @@ import nlp from "compromise";
 import dotenv from "dotenv";
 
 const app = express();
-const JWT_SECRET = "krishnateja@2002";
+const authenticateJWT = (req, res, next) => {
+  const token =
+    req.cookies.token || req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "User not authenticated" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+    req.user = user;
+    next();
+  });
+};
+
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_AI_API);
 
@@ -69,7 +85,9 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
     res.status(200).json({
       message: "Login successful",
       token,
@@ -82,7 +100,7 @@ app.post("/login", async (req, res) => {
 });
 
 // PDF upload
-app.post("/upload", async (req, res) => {
+app.post("/upload", authenticateJWT, async (req, res) => {
   const { text, userId, fileName } = req.body;
 
   if (!text || !userId || !fileName) {
@@ -150,7 +168,7 @@ app.get("/logout", (req, res) =>
 );
 
 // Ask a question
-app.post("/ask_question", async (req, res) => {
+app.post("/ask_question", authenticateJWT, async (req, res) => {
   const { question, userId, chatId } = req.body;
 
   if (!question || !userId || !chatId) {
@@ -223,7 +241,7 @@ const cosineSimilarity = (vecA, vecB) => {
 };
 
 // Get all PDFs
-app.get("/pdfs", async (req, res) => {
+app.get("/pdfs", authenticateJWT, async (req, res) => {
   const userId = req.cookies.userId;
   if (!userId)
     return res.status(401).json({ message: "User not authenticated" });
@@ -238,7 +256,7 @@ app.get("/pdfs", async (req, res) => {
 });
 
 //Delete a chat
-app.delete("/chats/:chatId", async (req, res) => {
+app.delete("/chats/:chatId", authenticateJWT, async (req, res) => {
   try {
     const chat = await Chat.findOneAndDelete({ chatId: req.params.chatId });
     if (!chat) return res.status(404).json({ message: "Chat not found." });
@@ -250,7 +268,7 @@ app.delete("/chats/:chatId", async (req, res) => {
 });
 
 // Fetch chat by chatId
-app.get("/chat_history/:chatId", async (req, res) => {
+app.get("/chat_history/:chatId", authenticateJWT, async (req, res) => {
   try {
     const chat = await Chat.findOne({ chatId: req.params.chatId });
     if (!chat)
@@ -263,7 +281,7 @@ app.get("/chat_history/:chatId", async (req, res) => {
 });
 
 // Fetch chats by userId
-app.get("/chats/:userId", async (req, res) => {
+app.get("/chats/:userId", authenticateJWT, async (req, res) => {
   try {
     const chats = await Chat.find({ userId: req.params.userId });
     if (!chats.length)
@@ -275,7 +293,7 @@ app.get("/chats/:userId", async (req, res) => {
   }
 });
 
-app.post("/chats", async (req, res) => {
+app.post("/chats", authenticateJWT, async (req, res) => {
   const { userId, chatId, fileName } = req.body;
 
   if (!userId || !chatId || !fileName) {
@@ -307,7 +325,7 @@ app.post("/chats", async (req, res) => {
 });
 
 // Route to get user data
-app.get("/user", async (req, res) => {
+app.get("/user", authenticateJWT, async (req, res) => {
   try {
     const userId = req.cookies.userId;
     if (!userId)
@@ -324,7 +342,7 @@ app.get("/user", async (req, res) => {
 });
 
 //Delete a pdf
-app.delete("/pdfs/:id", async (req, res) => {
+app.delete("/pdfs/:id", authenticateJWT, async (req, res) => {
   try {
     const deletedPdf = await PdfData.findByIdAndDelete(req.params.id);
     if (!deletedPdf) return res.status(404).json({ message: "PDF not found" });

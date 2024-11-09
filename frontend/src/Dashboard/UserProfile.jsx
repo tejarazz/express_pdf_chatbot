@@ -2,15 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
-
 const UserProfile = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [username, setUsername] = useState(""); // State for storing the username
-
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(true); // Loading state
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch the user data when the component mounts
     const fetchUserData = async () => {
       try {
         const response = await axios.get(
@@ -21,15 +19,34 @@ const UserProfile = () => {
         );
 
         if (response.status === 200) {
-          setUsername(response.data.firstName + " " + response.data.lastName); // Set the username from response
+          // Set username only if firstName and lastName are available
+          setUsername(
+            response.data.firstName && response.data.lastName
+              ? response.data.firstName + " " + response.data.lastName
+              : "User"
+          );
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+        if (error.response && error.response.status === 401) {
+          // Redirect to login page if not authenticated
+          navigate("/login");
+        }
+      } finally {
+        setLoading(false); // Stop loading once data is fetched or error occurs
       }
     };
 
     fetchUserData();
-  }, []);
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-end items-center">
+        <div className="w-8 h-8 border-4 border-t-4 border-neutral-200 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   // Get initials from the username
   const initials = username
@@ -49,19 +66,17 @@ const UserProfile = () => {
       }
     );
 
-    // Handle response
     if (response.status === 200) {
       console.log("Logout successful");
+      // Remove cookies on logout
+      Cookies.remove("token");
+      Cookies.remove("userId");
+      Cookies.remove("chatId");
+      Cookies.remove("fileName");
+      navigate("/"); // Redirect to login page
+    } else {
+      console.error("Logout failed");
     }
-
-    // Clear the cookies from the client side
-    Cookies.remove("token");
-    Cookies.remove("userId");
-    Cookies.remove("chatId");
-    Cookies.remove("fileName");
-
-    // Redirect to login page
-    navigate("/");
   };
 
   return (

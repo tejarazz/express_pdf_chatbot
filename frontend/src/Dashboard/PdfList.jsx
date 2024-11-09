@@ -31,7 +31,8 @@ const PdfList = ({ refresh }) => {
   const removePdf = async (id) => {
     try {
       const response = await axios.delete(
-        `${import.meta.env.VITE_LOCALHOST}/pdfs/${id}`
+        `${import.meta.env.VITE_LOCALHOST}/pdfs/${id}`,
+        { withCredentials: true }
       );
       if (response.status === 200) {
         setPdfData(pdfData.filter((pdf) => pdf._id !== id));
