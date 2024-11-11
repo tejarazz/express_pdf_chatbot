@@ -13,28 +13,48 @@ import nlp from "compromise";
 import dotenv from "dotenv";
 
 const app = express();
-const authenticateJWT = (req, res, next) => {
-  const token = req.cookies.token; // Assuming the JWT is stored in cookies
-
-  if (!token) return res.status(401).json({ message: "Access Denied" });
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token" });
-    req.user = user; // Attach the decoded user object to the request
-    next();
-  });
-};
 
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_AI_API);
 
 app.use(cookieParser());
+
+// CORS Middleware should be placed first
 app.use(
   cors({
     origin: ["http://localhost:5173", "https://express-documate.netlify.app"],
-    credentials: true,
+    credentials: true, // Allow cookies to be sent with the request
   })
 );
+
+// Authentication Middleware should be placed after CORS
+const authenticateJWT = (req, res, next) => {
+  const token =
+    req.cookies.token || req.headers["authorization"]?.split(" ")[1]; // JWT token from cookies or Authorization header
+
+  if (!token) {
+    console.log("No token provided");
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.log("Invalid token");
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    console.log("Token is valid. User:", user);
+    req.user = user;
+    next();
+  });
+};
+
+// Then, set the Access-Control-Allow-Credentials header (if needed explicitly)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
 app.use(express.json());
 
 mongoose
