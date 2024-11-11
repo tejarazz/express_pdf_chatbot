@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+
 const UserProfile = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [username, setUsername] = useState("");
@@ -28,17 +29,13 @@ const UserProfile = () => {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-        if (error.response && error.response.status === 401) {
-          // Redirect to login page if not authenticated
-          navigate("/login");
-        }
       } finally {
         setLoading(false); // Stop loading once data is fetched or error occurs
       }
     };
 
     fetchUserData();
-  }, [navigate]);
+  }, []);
 
   if (loading) {
     return (
