@@ -49,9 +49,7 @@ const PdfList = ({ refresh }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-24 text-white">
-        Loading...
-      </div>
+      <div className="flex items-center justify-center h-24 text-white"></div>
     );
   }
 

@@ -22,20 +22,13 @@ const Login = () => {
       );
 
       if (response.data.message === "Login successful") {
-        const { token, userId } = response.data;
+        const { token } = response.data;
 
         // Set the JWT token cookie
         Cookies.set("token", token, {
           expires: 1,
           secure: window.location.protocol === "https:",
         });
-
-        // Set the userId cookie
-        Cookies.set("userId", userId, {
-          expires: 1,
-          secure: window.location.protocol === "https:",
-        });
-
         // Navigate to the dashboard
         navigate("/dashboard");
       } else {

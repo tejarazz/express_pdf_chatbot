@@ -14,18 +14,13 @@ import dotenv from "dotenv";
 
 const app = express();
 const authenticateJWT = (req, res, next) => {
-  const token =
-    req.cookies.token || req.headers["authorization"]?.split(" ")[1];
+  const token = req.cookies.token; // Assuming the JWT is stored in cookies
 
-  if (!token) {
-    return res.status(401).json({ message: "User not authenticated" });
-  }
+  if (!token) return res.status(401).json({ message: "Access Denied" });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-    req.user = user;
+    if (err) return res.status(403).json({ message: "Invalid token" });
+    req.user = user; // Attach the decoded user object to the request
     next();
   });
 };
@@ -50,51 +45,76 @@ mongoose
 // User signup
 app.post("/signup", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
-  try {
-    if (await Users.exists({ email }))
-      return res.status(400).send("User already exists");
 
-    const hashPassword = await bcrypt.hash(password, 10);
+  // Basic email validation (you can enhance this)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: "Invalid email format" });
+  }
+
+  try {
+    // Check if user already exists by email
+    const existingUser = await Users.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Password hashing
+    const hashPassword = await bcrypt.hash(password, 10); // You can increase salt rounds for stronger hashing
+
+    // Create new user
     const newUser = new Users({
       firstName,
       lastName,
       email,
       password: hashPassword,
     });
+
+    // Save user
     await newUser.save();
 
+    // Send response with user details (excluding password)
     res.status(201).json({
       message: "User created successfully",
-      _id: newUser._id,
-      firstName,
-      lastName,
-      email,
+      user: {
+        _id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+      },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
+    console.error("Error in signup:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // User login
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+
   try {
+    // Find user by email
     const user = await Users.findOne({ email });
+
+    // If user not found or password doesn't match
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "1h", // You can increase the expiration time if needed (e.g., "24h")
     });
+
+    // Send response with token and userId (excluding password)
     res.status(200).json({
       message: "Login successful",
       token,
       userId: user._id.toString(),
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in login:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -108,6 +128,11 @@ app.post("/upload", authenticateJWT, async (req, res) => {
   }
 
   try {
+    const userId = req.user.id; // Ensure the authenticated user ID is attached to the request (assumed from `authenticateJWT`)
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
     const chunkSize = 1000; // Adjust as needed
     const chunks = [];
 
@@ -124,13 +149,20 @@ app.post("/upload", authenticateJWT, async (req, res) => {
           .out("array")
           .map((s) => s.trim())
           .filter(Boolean);
+
         const embeddedSentences = await Promise.all(
           sentences.map(async (sentence) => {
-            const embedding = await embeddings(sentence);
-            return { sentence, embedding };
+            try {
+              const embedding = await embeddings(sentence);
+              return { sentence, embedding };
+            } catch (embeddingError) {
+              console.error("Error embedding sentence:", embeddingError);
+              return null; // or some other fallback behavior
+            }
           })
         );
-        return embeddedSentences;
+
+        return embeddedSentences.filter(Boolean); // Remove any null values
       })
     );
 
@@ -140,19 +172,28 @@ app.post("/upload", authenticateJWT, async (req, res) => {
       embedding: s.embedding,
     }));
 
-    // Save to database without userId
-    const existingPdf =
-      (await PdfData.findOneAndUpdate(
-        { fileName },
-        { segments: allSegments },
-        { new: true }
-      )) || (await new PdfData({ fileName, segments: allSegments }).save());
+    // Check if the fileName already exists in the database
+    const existingPdf = await PdfData.findOne({ fileName, userId });
 
-    res.status(existingPdf ? 200 : 201).json({
-      message: `${
-        existingPdf ? "PDF text updated" : "PDF text uploaded"
-      } and vectorized successfully!`,
-    });
+    if (existingPdf) {
+      // If the file already exists for the user, update its segments
+      existingPdf.segments = allSegments;
+      await existingPdf.save();
+      res.status(200).json({
+        message: "PDF text updated and vectorized successfully!",
+      });
+    } else {
+      // If it's a new file, create a new PDF entry with the user's ID
+      const newPdf = new PdfData({
+        fileName,
+        userId, // Associate with the user
+        segments: allSegments,
+      });
+      await newPdf.save();
+      res.status(201).json({
+        message: "PDF text uploaded and vectorized successfully!",
+      });
+    }
   } catch (error) {
     console.error("Error uploading PDF text:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -196,9 +237,10 @@ app.post("/ask_question", authenticateJWT, async (req, res) => {
     const questionVector = await embeddings(question);
 
     // Filter segments based on cosine similarity
-    const similarityThreshold = 0.4;
+    const similarityThreshold = 0.3;
     const relevantSegments = pdf.segments.filter((segment) => {
       const similarity = cosineSimilarity(questionVector, segment.embedding);
+      // Removed the console.log for similarity and segment text
       return similarity >= similarityThreshold;
     });
 
@@ -249,14 +291,14 @@ const cosineSimilarity = (vecA, vecB) => {
   return magnitudeA && magnitudeB ? dotProduct / (magnitudeA * magnitudeB) : 0;
 };
 
-// Get all PDFs
+// Get all PDFs for the authenticated user
 app.get("/pdfs", authenticateJWT, async (req, res) => {
-  const userId = req.cookies.userId;
-  if (!userId)
-    return res.status(401).json({ message: "User not authenticated" });
+  const userId = req.user.id;
 
   try {
+    // Fetch only PDFs that belong to the authenticated user
     const pdfs = await PdfData.find({ userId });
+
     res.json(pdfs);
   } catch (error) {
     console.error("Error fetching PDF data:", error);
@@ -289,31 +331,46 @@ app.get("/chat_history/:chatId", authenticateJWT, async (req, res) => {
   }
 });
 
-// Fetch chats by userId
-app.get("/chats/:userId", authenticateJWT, async (req, res) => {
+// Fetch chats by userId (extracted from JWT)
+app.get("/chats", authenticateJWT, async (req, res) => {
+  const userId = req.user?.id; // Extract userId from the JWT
+
+  if (!userId) {
+    return res.status(401).json({ message: "User not authenticated." });
+  }
+
   try {
-    const chats = await Chat.find({ userId: req.params.userId });
-    if (!chats.length)
-      return res.status(404).json({ message: "No chats found for this user." });
-    res.status(200).json(chats);
+    const chats = await Chat.find({ userId });
+
+    // Return an empty array if no chats are found
+    res.status(200).json(chats || []);
   } catch (error) {
     console.error("Error fetching chats:", error);
     res.status(500).json({ message: "Server error." });
   }
 });
 
-app.post("/chats", authenticateJWT, async (req, res) => {
-  const { userId, chatId, fileName } = req.body;
+// Create new chat
+app.post("/create_chat", authenticateJWT, async (req, res) => {
+  const { chatId, fileName } = req.body;
 
-  if (!userId || !chatId || !fileName) {
-    console.log("Missing required fields:", { userId, chatId, fileName });
+  // Ensure that chatId and fileName are provided
+  if (!chatId || !fileName) {
+    console.log("Missing required fields:", { chatId, fileName });
     return res
       .status(400)
-      .json({ message: "User ID, chat ID, and file name are required." });
+      .json({ message: "Chat ID and file name are required." });
+  }
+
+  const userId = req.user?.id;
+
+  if (!userId) {
+    console.log("User not authenticated.");
+    return res.status(401).json({ message: "User not authenticated." });
   }
 
   try {
-    // Ensure that the correct 'fileName' is used here
+    // Create a new chat with the retrieved userId
     const chat = new Chat({
       userId,
       chatId,
@@ -333,15 +390,19 @@ app.post("/chats", authenticateJWT, async (req, res) => {
   }
 });
 
-// Route to get user data
+// Route to get user data (using userId from JWT)
 app.get("/user", authenticateJWT, async (req, res) => {
   try {
-    const userId = req.cookies.userId;
-    if (!userId)
+    const userId = req.user?.id; // Extract userId from the decoded JWT
+
+    if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
+    }
 
     const user = await Users.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     res.status(200).json(user);
   } catch (error) {

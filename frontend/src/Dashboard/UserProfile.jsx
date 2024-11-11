@@ -43,7 +43,7 @@ const UserProfile = () => {
   if (loading) {
     return (
       <div className="flex justify-end items-center">
-        <div className="w-8 h-8 border-4 border-t-4 border-neutral-200 border-t-transparent rounded-full animate-spin"></div>
+        <div className=""></div>
       </div>
     );
   }
@@ -70,9 +70,7 @@ const UserProfile = () => {
       console.log("Logout successful");
       // Remove cookies on logout
       Cookies.remove("token");
-      Cookies.remove("userId");
       Cookies.remove("chatId");
-      Cookies.remove("fileName");
       navigate("/"); // Redirect to login page
     } else {
       console.error("Logout failed");

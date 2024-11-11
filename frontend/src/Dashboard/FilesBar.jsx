@@ -12,47 +12,35 @@ const FilesBar = () => {
   const [dropdownOpenId, setDropdownOpenId] = useState(null);
   const [pdfs, setPdfs] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const userId = Cookies.get("userId");
   const navigate = useNavigate();
 
   const fetchChatHistory = useCallback(async () => {
-    if (!userId) {
-      console.error("User ID not found in cookies");
-      return;
-    }
-
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_LOCALHOST}/chats/${userId}`,
+        `${import.meta.env.VITE_LOCALHOST}/chats`, // Fetch chats from /chats route
         { withCredentials: true }
       );
       setChatHistory(response.data || []);
     } catch (error) {
       console.error("Error fetching chat history:", error);
     }
-  }, [userId]);
+  }, []);
 
   const fetchPdfs = useCallback(async () => {
-    if (!userId) {
-      console.error("User ID not found in cookies");
-      return;
-    }
-
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_LOCALHOST}/pdfs`,
+        `${import.meta.env.VITE_LOCALHOST}/pdfs`, // Fetch PDFs
         { withCredentials: true }
       );
       setPdfs(response.data || []);
     } catch (error) {
       console.error("Error fetching PDFs:", error);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    fetchChatHistory();
-    fetchPdfs();
-  }, [fetchChatHistory, fetchPdfs]);
+    fetchChatHistory(); // Fetch chat history when component mounts
+  }, [fetchChatHistory]);
 
   const handleChatClick = (chatId) => {
     setSelectedChatId(chatId);
@@ -66,12 +54,13 @@ const FilesBar = () => {
   };
 
   const handleSelectPdf = async (fileName) => {
-    const newChatId = Date.now();
+    const newChatId = Date.now(); // Generate a new chat ID
 
     try {
+      // Use the new /create_chat route to create a new chat
       const response = await axios.post(
-        `${import.meta.env.VITE_LOCALHOST}/chats`,
-        { userId, chatId: newChatId, fileName },
+        `${import.meta.env.VITE_LOCALHOST}/create_chat`, // Updated route for creating chat
+        { chatId: newChatId, fileName },
         { withCredentials: true }
       );
 
@@ -80,16 +69,16 @@ const FilesBar = () => {
 
       setChatHistory((prevHistory) => [newChat, ...prevHistory]);
       navigate(`/dashboard/${newChatId}`);
-      fetchChatHistory(); // Refresh chat history after new chat is created
     } catch (error) {
       console.error("Error creating new chat:", error.message);
     }
 
-    setIsModalOpen(false);
+    setIsModalOpen(false); // Close the modal after selecting PDF
   };
 
   const handleDeleteChat = async (chatId) => {
     try {
+      // Use the delete route if needed in the backend
       await axios.delete(`${import.meta.env.VITE_LOCALHOST}/chats/${chatId}`, {
         withCredentials: true,
       });
@@ -102,8 +91,6 @@ const FilesBar = () => {
         setSelectedChatId(null);
         Cookies.remove("chatId");
       }
-
-      fetchChatHistory(); // Refresh chat history after deletion
     } catch (error) {
       console.error("Error deleting chat:", error.message);
     }
