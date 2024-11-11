@@ -169,15 +169,17 @@ app.get("/logout", (req, res) =>
 
 // Ask a question
 app.post("/ask_question", authenticateJWT, async (req, res) => {
-  const { question, userId, chatId } = req.body;
+  const { question, chatId } = req.body;
 
-  if (!question || !userId || !chatId) {
+  // Check if question and chatId are provided
+  if (!question || !chatId) {
     return res
       .status(400)
-      .json({ message: "Question, user ID, and chat ID are required" });
+      .json({ message: "Question and chat ID are required" });
   }
 
   try {
+    // Find the chat by chatId
     const chat = await Chat.findOne({ chatId });
     if (!chat) {
       return res
@@ -185,42 +187,52 @@ app.post("/ask_question", authenticateJWT, async (req, res) => {
         .json({ message: "Chat does not exist. Create a new chat first." });
     }
 
-    const pdf = await PdfData.findOne({ userId, fileName: chat.fileName });
+    // Retrieve the PDF data using the fileName from the chat (without userId)
+    const pdf = await PdfData.findOne({ fileName: chat.fileName });
     if (!pdf || !pdf.segments || pdf.segments.length === 0) {
       return res
         .status(404)
         .json({ message: "No PDF document or valid segments found." });
     }
 
+    // Generate the question embedding
     const questionVector = await embeddings(question);
+
+    // Filter segments based on cosine similarity
     const similarityThreshold = 0.4;
     const relevantSegments = pdf.segments.filter((segment) => {
       const similarity = cosineSimilarity(questionVector, segment.embedding);
       return similarity >= similarityThreshold;
     });
 
+    // Check if relevant segments were found
     if (!relevantSegments.length) {
       return res
         .status(404)
         .json({ message: "No relevant information found." });
     }
 
+    // Construct prompt for AI model
     const prompt = `Using the following segments, answer the question:\n\n${relevantSegments
       .map((seg) => seg.text)
       .join("\n")}\n\nQuestion: ${question}`;
 
+    // Generate response from the AI model
     const result = await genAI
       .getGenerativeModel({ model: "gemini-1.5-flash" })
       .generateContent(prompt);
 
+    // Add the question and AI response to chat history
     chat.questions.push({
       question,
       aiResponse: result.response.text(),
       timestamp: new Date(),
     });
 
+    // Save the updated chat
     await chat.save();
 
+    // Send the AI response back to the frontend
     res.status(200).json({
       message: "Question processed successfully.",
       question,

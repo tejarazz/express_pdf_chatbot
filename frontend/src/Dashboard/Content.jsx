@@ -38,10 +38,9 @@ const Content = () => {
 
   const handleQuestionSubmit = async (e) => {
     e.preventDefault();
-    const userId = Cookies.get("userId");
     const chatId = urlChatId || Cookies.get("chatId");
 
-    if (!userId || !chatId) {
+    if (!chatId) {
       return;
     }
 
@@ -57,7 +56,6 @@ const Content = () => {
         `${import.meta.env.VITE_LOCALHOST}/ask_question`,
         {
           question,
-          userId,
           chatId,
         },
         { withCredentials: true }
