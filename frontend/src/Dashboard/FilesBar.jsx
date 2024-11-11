@@ -4,18 +4,17 @@ import Cookies from "js-cookie";
 import { RiChatNewFill } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { BsThreeDots } from "react-icons/bs";
-import PdfSelectionModal from "./PdfSelectionModal"; // Import PdfSelectionModal component
+import PdfSelectionModal from "./PdfSelectionModal";
 
 const FilesBar = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [dropdownOpenId, setDropdownOpenId] = useState(null);
-  const [pdfs, setPdfs] = useState([]); // State to store uploaded PDFs
-  const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
+  const [pdfs, setPdfs] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const userId = Cookies.get("userId");
   const navigate = useNavigate();
 
-  // Fetch chat history on component mount or when userId changes
   const fetchChatHistory = useCallback(async () => {
     if (!userId) {
       console.error("User ID not found in cookies");
@@ -33,7 +32,6 @@ const FilesBar = () => {
     }
   }, [userId]);
 
-  // Fetch PDFs when component mounts or userId changes
   const fetchPdfs = useCallback(async () => {
     if (!userId) {
       console.error("User ID not found in cookies");
@@ -45,7 +43,7 @@ const FilesBar = () => {
         `${import.meta.env.VITE_LOCALHOST}/pdfs`,
         { withCredentials: true }
       );
-      setPdfs(response.data || []); // Update the state with the PDFs data
+      setPdfs(response.data || []);
     } catch (error) {
       console.error("Error fetching PDFs:", error);
     }
@@ -53,7 +51,7 @@ const FilesBar = () => {
 
   useEffect(() => {
     fetchChatHistory();
-    fetchPdfs(); // Fetch PDFs when component mounts
+    fetchPdfs();
   }, [fetchChatHistory, fetchPdfs]);
 
   const handleChatClick = (chatId) => {
@@ -63,8 +61,7 @@ const FilesBar = () => {
   };
 
   const handleNewChat = () => {
-    // Re-fetch PDFs and then open the modal when "New Chat" is clicked
-    fetchPdfs();
+    fetchPdfs(); // Refresh PDFs before opening the modal
     setIsModalOpen(true);
   };
 
@@ -74,20 +71,16 @@ const FilesBar = () => {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_LOCALHOST}/chats`,
-        {
-          userId,
-          chatId: newChatId,
-          fileName, // Make sure the fileName matches what you need
-        },
+        { userId, chatId: newChatId, fileName },
         { withCredentials: true }
       );
 
       const { chatId, fileName: backendFileName } = response.data;
-
       const newChat = { chatId, fileName: backendFileName, questions: [] };
 
-      setChatHistory((prevHistory) => [newChat, ...prevHistory]); // Update state after creating a new chat
+      setChatHistory((prevHistory) => [newChat, ...prevHistory]);
       navigate(`/dashboard/${newChatId}`);
+      fetchChatHistory(); // Refresh chat history after new chat is created
     } catch (error) {
       console.error("Error creating new chat:", error.message);
     }
@@ -102,14 +95,15 @@ const FilesBar = () => {
       });
       setChatHistory((prevHistory) =>
         prevHistory.filter((chat) => chat.chatId !== chatId)
-      ); // Update state immediately after deleting a chat
-      setDropdownOpenId(null); // Close the dropdown after deletion
+      );
+      setDropdownOpenId(null);
 
-      // If the deleted chat was the selected one, clear the selection
       if (selectedChatId === chatId) {
         setSelectedChatId(null);
         Cookies.remove("chatId");
       }
+
+      fetchChatHistory(); // Refresh chat history after deletion
     } catch (error) {
       console.error("Error deleting chat:", error.message);
     }
@@ -160,7 +154,7 @@ const FilesBar = () => {
                     {dropdownOpenId === chat.chatId && (
                       <div
                         className="absolute right-0 top-8 bg-neutral-700 text-white rounded-md shadow-lg p-1 w-24 z-20"
-                        onClick={(e) => e.stopPropagation()} // Prevent dropdown from closing immediately
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => handleDeleteChat(chat.chatId)}
@@ -180,10 +174,9 @@ const FilesBar = () => {
         </div>
       </div>
 
-      {/* Display Modal for PDF selection */}
       {isModalOpen && (
         <PdfSelectionModal
-          pdfs={pdfs} // Directly pass pdfs as prop
+          pdfs={pdfs}
           onClose={() => setIsModalOpen(false)}
           onSelect={handleSelectPdf}
         />

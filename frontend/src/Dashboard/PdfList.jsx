@@ -68,13 +68,13 @@ const PdfList = ({ refresh }) => {
       <h1 className="text-xl font-bold text-white text-center mb-4">
         Uploaded PDFs
       </h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-600">
+      <div className="overflow-x-auto rounded-md">
+        <table className="min-w-full divide-y  divide-gray-600">
           <tbody className="bg-neutral-600 divide-y divide-gray-500">
             {pdfData.length > 0 ? (
               pdfData.reverse().map((pdf) => (
                 <tr key={pdf._id}>
-                  <td className="py-2 flex justify-between items-center px-4 text-gray-300">
+                  <td className="py-2 flex justify-between items-center px-4 text-sm text-gray-300">
                     {truncateFileName(pdf.fileName, 20)}
                     <RxCross1
                       onClick={() => removePdf(pdf._id)}
