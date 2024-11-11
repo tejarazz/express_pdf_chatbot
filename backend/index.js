@@ -101,12 +101,10 @@ app.post("/login", async (req, res) => {
 
 // PDF upload
 app.post("/upload", authenticateJWT, async (req, res) => {
-  const { text, userId, fileName } = req.body;
+  const { text, fileName } = req.body;
 
-  if (!text || !userId || !fileName) {
-    return res
-      .status(400)
-      .json({ message: "Text, userId, and fileName are required." });
+  if (!text || !fileName) {
+    return res.status(400).json({ message: "Text and fileName are required." });
   }
 
   try {
@@ -142,14 +140,13 @@ app.post("/upload", authenticateJWT, async (req, res) => {
       embedding: s.embedding,
     }));
 
-    // Save to database
+    // Save to database without userId
     const existingPdf =
       (await PdfData.findOneAndUpdate(
-        { fileName, userId },
+        { fileName },
         { segments: allSegments },
         { new: true }
-      )) ||
-      (await new PdfData({ userId, fileName, segments: allSegments }).save());
+      )) || (await new PdfData({ fileName, segments: allSegments }).save());
 
     res.status(existingPdf ? 200 : 201).json({
       message: `${

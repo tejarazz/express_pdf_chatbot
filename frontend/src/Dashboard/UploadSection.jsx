@@ -2,9 +2,8 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import PdfToText from "react-pdftotext";
 import axios from "axios";
-import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
-import PdfList from "./PdfList"; // Adjust the import path of PdfList
+import PdfList from "./PdfList"; // Adjust the import path of PdfList if necessary
 
 const UploadSection = () => {
   const [extractedText, setExtractedText] = useState("");
@@ -12,44 +11,46 @@ const UploadSection = () => {
   const [fileName, setFileName] = useState(""); // State to hold the file name
   const [refresh, setRefresh] = useState(false); // State to trigger re-fetch in PdfList
 
+  // Handle file drop
   const onDrop = useCallback((acceptedFiles) => {
     acceptedFiles.forEach((file) => {
       console.log("Uploaded PDF:", file);
-      setFileName(file.name);
+      setFileName(file.name); // Store file name
+      // Convert PDF to text
       PdfToText(file)
         .then((text) => {
-          setExtractedText(text);
+          setExtractedText(text); // Store extracted text
         })
         .catch((error) => {
           console.error("Error extracting text:", error);
+          toast.error("Failed to extract text from PDF."); // Show toast error
         });
     });
   }, []);
 
+  // Handle upload to the server
   const handleUpload = async () => {
-    const userId = Cookies.get("userId"); // Retrieve the userId from the cookie
-
-    if (!userId) {
-      toast.error("User not authenticated."); // Show toast error
-      return; // Prevent upload if userId is not available
+    if (!extractedText || !fileName) {
+      toast.error("Please upload a PDF file first.");
+      return;
     }
 
-    setLoading(true); // Set loading state to true
+    setLoading(true); // Set loading state
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_LOCALHOST}/upload`,
         {
           text: extractedText,
-          userId,
           fileName,
         },
         { withCredentials: true }
       );
+
       console.log(response.status);
       toast.success("Text uploaded and vectorized successfully!");
-      setExtractedText("");
-      setFileName(""); // Clear the file name after upload
-      setRefresh((prev) => !prev); // Trigger refresh state change to update PdfList
+      setExtractedText(""); // Clear extracted text after upload
+      setFileName(""); // Clear file name after upload
+      setRefresh((prev) => !prev); // Trigger refresh to update PdfList
     } catch (error) {
       console.error("Error uploading text:", error);
       toast.error("Failed to upload text.");
@@ -58,6 +59,7 @@ const UploadSection = () => {
     }
   };
 
+  // Set up Dropzone properties
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "application/pdf": [] },
@@ -66,7 +68,8 @@ const UploadSection = () => {
 
   return (
     <div>
-      <Toaster />
+      <Toaster /> {/* Toaster for notifications */}
+      {/* Dropzone area */}
       <div
         {...getRootProps()}
         className={`bg-neutral-800 p-4 h-32 mt-16 cursor-pointer border-2 border-dashed border-gray-500 flex items-center justify-center ${
@@ -82,7 +85,9 @@ const UploadSection = () => {
           </p>
         )}
       </div>
+      {/* Display uploaded file name */}
       {fileName && <p className="mt-2 text-white">Uploaded File: {fileName}</p>}
+      {/* Upload button */}
       <div className="mt-4">
         <button
           className={`mt-2 w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center justify-center ${
@@ -97,7 +102,6 @@ const UploadSection = () => {
           {loading ? "Uploading..." : "Upload"}
         </button>
       </div>
-
       {/* PdfList component with refresh prop */}
       <PdfList refresh={refresh} />
     </div>
