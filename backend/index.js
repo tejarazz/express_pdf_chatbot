@@ -127,6 +127,14 @@ app.post("/login", async (req, res) => {
       expiresIn: "1h", // You can increase the expiration time if needed (e.g., "24h")
     });
 
+    // Set the token in a cookie (secure, httpOnly, sameSite flags are important)
+    res.cookie("token", token, {
+      httpOnly: true, // Can't be accessed from JavaScript
+      secure: process.env.NODE_ENV === "production", // Set to true in production (HTTPS)
+      sameSite: "Strict", // Or 'Lax', depending on your needs
+      maxAge: 3600000, // Cookie expires in 1 hour
+    });
+
     // Send response with token and userId (excluding password)
     res.status(200).json({
       message: "Login successful",
