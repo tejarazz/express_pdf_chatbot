@@ -27,28 +27,6 @@ app.use(
   })
 );
 
-// Authentication Middleware should be placed after CORS
-const authenticateJWT = (req, res, next) => {
-  const token =
-    req.cookies.token || req.headers["authorization"]?.split(" ")[1]; // JWT token from cookies or Authorization header
-
-  if (!token) {
-    console.log("No token provided");
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.log("Invalid token");
-      return res.status(403).json({ message: "Invalid token" });
-    }
-
-    console.log("Token is valid. User:", user);
-    req.user = user;
-    next();
-  });
-};
-
 // Then, set the Access-Control-Allow-Credentials header (if needed explicitly)
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
@@ -146,6 +124,28 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// Authentication Middleware should be placed after CORS
+const authenticateJWT = (req, res, next) => {
+  const token =
+    req.cookies.token || req.headers["authorization"]?.split(" ")[1]; // JWT token from cookies or Authorization header
+
+  if (!token) {
+    console.log("No token provided");
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.log("Invalid token");
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    console.log("Token is valid. User:", user);
+    req.user = user;
+    next();
+  });
+};
 
 // PDF upload
 app.post("/upload", authenticateJWT, async (req, res) => {
