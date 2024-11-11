@@ -59,21 +59,25 @@ const UserProfile = () => {
   };
 
   const handleLogout = async () => {
-    const response = await axios.get(
-      `${import.meta.env.VITE_LOCALHOST}/logout`,
-      {
-        withCredentials: true,
-      }
-    );
+    try {
+      // Call backend to handle logout and clear the cookie
+      const response = await axios.get(
+        `${import.meta.env.VITE_LOCALHOST}/logout`,
+        {
+          withCredentials: true, // Ensure cookies are sent with the request
+        }
+      );
 
-    if (response.status === 200) {
-      console.log("Logout successful");
-      // Remove cookies on logout
-      Cookies.remove("token");
-      Cookies.remove("chatId");
-      navigate("/"); // Redirect to login page
-    } else {
-      console.error("Logout failed");
+      if (response.status === 200) {
+        console.log("Logout successful");
+        // No need to manually remove cookies here
+        Cookies.remove("chatId");
+        navigate("/"); // Redirect to login page
+      } else {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Error during logout:", error.message || error);
     }
   };
 

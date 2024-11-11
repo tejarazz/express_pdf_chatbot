@@ -127,21 +127,17 @@ app.post("/login", async (req, res) => {
 
 // Authentication Middleware should be placed after CORS
 const authenticateJWT = (req, res, next) => {
-  const token =
-    req.cookies.token || req.headers["authorization"]?.split(" ")[1]; // JWT token from cookies or Authorization header
+  const token = req.cookies.token; // Extract token from cookie
 
   if (!token) {
-    console.log("No token provided");
     return res.status(401).json({ message: "No token provided" });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      console.log("Invalid token");
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    console.log("Token is valid. User:", user);
     req.user = user;
     next();
   });
@@ -229,9 +225,14 @@ app.post("/upload", authenticateJWT, async (req, res) => {
 });
 
 // Logout
-app.get("/logout", (req, res) =>
-  res.status(200).json({ message: "Logout successful" })
-);
+app.get("/logout", (req, res) => {
+  // Clear the token cookie
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  });
+  res.status(200).json({ message: "Logout successful" });
+});
 
 // Ask a question
 app.post("/ask_question", authenticateJWT, async (req, res) => {

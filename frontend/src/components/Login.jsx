@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Cookies from "js-cookie";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -22,13 +21,6 @@ const Login = () => {
       );
 
       if (response.data.message === "Login successful") {
-        const { token } = response.data;
-
-        // Set the JWT token cookie
-        Cookies.set("token", token, {
-          expires: 1,
-          secure: window.location.protocol === "https:",
-        });
         // Navigate to the dashboard
         navigate("/dashboard");
       } else {
