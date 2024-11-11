@@ -109,7 +109,7 @@ app.post("/login", async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true, // Can't be accessed from JavaScript
       secure: process.env.NODE_ENV === "production", // Set to true in production (HTTPS)
-      sameSite: "Strict", // Or 'Lax', depending on your needs
+      sameSite: "None",
       maxAge: 3600000, // Cookie expires in 1 hour
     });
 
